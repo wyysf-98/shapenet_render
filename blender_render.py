@@ -5,8 +5,9 @@ import os.path as osp
 abs_path = os.path.abspath(__file__)
 sys.path.append(os.path.dirname(abs_path))
 
-from config import *
 from glob import glob
+from config import *
+from mathutils import Vector
 
 class BlenderRender():
     def __init__(self):
@@ -23,24 +24,25 @@ class BlenderRender():
         bpy.ops.object.delete()
 
         # Render config
-        bpy.context.scene.render.engine = render_engine
-        bpy.context.scene.render.film_transparent = film_transparent
+        self.scene = bpy.context.scene
+        self.scene.render.engine = render_engine
+        self.scene.render.film_transparent = film_transparent
 
         # Output config
         bpy.context.view_layer.use_pass_normal = True
         bpy.context.view_layer.use_pass_diffuse_color = True
 
-        bpy.context.scene.render.image_settings.color_mode = color_mode
-        bpy.context.scene.render.image_settings.color_depth = color_depth
-        bpy.context.scene.render.image_settings.file_format = file_format
-        bpy.context.scene.render.resolution_x = x_res
-        bpy.context.scene.render.resolution_y = y_res
-        bpy.context.scene.render.resolution_percentage = res_percentage
+        self.scene.render.image_settings.color_mode = rgb_color_mode
+        self.scene.render.image_settings.color_depth = rgb_color_depth
+        self.scene.render.image_settings.file_format = rgb_file_format
+        self.scene.render.resolution_x = x_res
+        self.scene.render.resolution_y = y_res
+        self.scene.render.resolution_percentage = res_percentage
 
     def __set_nodes(self):
         # Set up rendering of depth map.
-        bpy.context.scene.use_nodes = True
-        self.tree = bpy.context.scene.node_tree
+        self.scene.use_nodes = True
+        self.tree = self.scene.node_tree
         links = self.tree.links
 
         # Clear default nodes
@@ -62,6 +64,8 @@ class BlenderRender():
         remap.min = [0]
         links.new(render_layers.outputs['Depth'], remap.inputs[0])
         links.new(remap.outputs[0], self.depth_file_output.inputs[0])
+        self.depth_file_output.format.file_format = depth_file_format
+        self.depth_file_output.format.color_mode = depth_color_mode
 
         # Config normal node
         scale_normal = self.tree.nodes.new(type="CompositorNodeMixRGB")
@@ -78,8 +82,8 @@ class BlenderRender():
             type="CompositorNodeOutputFile")
         self.normal_file_output.label = 'Normal Output'
         links.new(bias_normal.outputs[0], self.normal_file_output.inputs[0])
-        self.normal_file_output.format.file_format = "PNG"
-        self.normal_file_output.format.color_mode = "RGBA"
+        self.normal_file_output.format.file_format = normal_file_format
+        self.normal_file_output.format.color_mode = normal_color_mode
 
         # Config albedo node
         self.albedo_file_output = self.tree.nodes.new(
@@ -87,48 +91,72 @@ class BlenderRender():
         self.albedo_file_output.label = 'Albedo Output'
         links.new(render_layers.outputs['DiffCol'],
                   self.albedo_file_output.inputs[0])
-        self.albedo_file_output.format.file_format = "PNG"
-        self.albedo_file_output.format.color_mode = "RGBA"
+        self.albedo_file_output.format.file_format = albedo_file_format
+        self.albedo_file_output.format.color_mode = albedo_color_mode
 
     def __set_lights(self):
-        light = bpy.data.objects["Light"]
-        light.type = 'SUN'
-        light.shadow_method = 'NOSHADOW'
-        light.use_specular = False
+        pass
+
+    def look_at(self, obj, point):
+        loc_obj = obj.location
+        direction = point - loc_obj
+        # point the cameras '-Z' and use its 'Y' as up
+        rot_quat = direction.to_track_quat('-Z', 'Y')
+
+        obj.rotation_euler = rot_quat.to_euler()
+
+    def move_camera(self, init_loc=(0, 1, 0)):
+        self.cam = self.scene.objects['Camera']
+        self.cam.location = init_loc
+        cam_constraint = self.cam.constraints.new(type='TRACK_TO')
+        cam_constraint.track_axis = 'TRACK_NEGATIVE_Z'
+        cam_constraint.up_axis = 'UP_Y'
+
+        self.look_at(self.cam, Vector((0.0, 0, 0)))
 
     def import_obj(self, obj_path):
         self.__del_all_mesh()
         bpy.ops.import_scene.obj(filepath=obj_path)
 
-        cur_obj = bpy.context.selected_objects[0]
-        scale = 2.0 / max(cur_obj.dimensions) * 3.0
-        cur_obj.scale = (scale, scale, scale)
+        # cur_obj = bpy.context.selected_objects[0]
+        # scale = 8
+        # cur_obj.scale = (scale, scale, scale)
 
-        for polygon in cur_obj.data.polygons:
-            polygon.use_smooth = True
-        for mat in bpy.data.materials:
-            mat.use_backface_culling = True
+        # for polygon in cur_obj.data.polygons:
+        #     polygon.use_smooth = True
+        # for mat in bpy.data.materials:
+        #     mat.use_backface_culling = True
 
     def render(self):
         for output_node in [self.depth_file_output, self.normal_file_output, self.albedo_file_output]:
             output_node.base_path = ''
-            
-        for i in range(1):
-            bpy.context.scene.render.filepath = osp.join(
-                out_rgb_path, '{}.png'.format(i))
+        cam_loc = [
+            (1.5, 0, 0),
+            (-1.5, 0, 0),
+            (0, 1, 0),
+            (0, -1, 0),
+            (0, 0, 1.5),
+            (0, 0, -1.5),
+        ]
+        for i, loc in enumerate(cam_loc):
+            self.move_camera(loc)
+
+            self.scene.render.filepath = osp.join(
+                rgb_out_path, '{}.png'.format(i))
             self.depth_file_output.file_slots[0].path = osp.join(
-                out_depth_path, '{}_'.format(i))
+                depth_out_path, '{}_'.format(i))
             self.normal_file_output.file_slots[0].path = osp.join(
-                out_normal_path, '{}_'.format(i))
+                normal_out_path, '{}_'.format(i))
             self.albedo_file_output.file_slots[0].path = osp.join(
-                out_albedo_path, '{}_'.format(i))
+                albedo_out_path, '{}_'.format(i))
 
             bpy.ops.render.render(write_still=True)  # render still
 
 
-my_render = BlenderRender()
-for cate in render_cate:
-    model_path = glob(
-        osp.join(shapenet_path, shapenet_cate[cate], '*', 'models', '*.obj'))
-    my_render.import_obj(model_path[0])
-    my_render.render()
+if __name__ == "__main__":
+    my_render = BlenderRender()
+    for cate in render_cate:
+        model_path = glob(
+            osp.join(shapenet_path, shapenet_cate[cate], '*', 'models', 'model_normalized.obj'))
+        my_render.import_obj(model_path[1])
+        my_render.render()

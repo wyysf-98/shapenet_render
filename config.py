@@ -62,21 +62,30 @@ render_cate = ['car']
 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
 
 # render configs
-render_engine = 'CYCLES'
+render_engine = 'CYCLES' # 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES'
 film_transparent = True
 
 # output image configs
-out_rgb_path = 'rgb_img'
-out_depth_path = 'depth_img'
-out_normal_path = 'normal_img'
-out_albedo_path = 'albedo_img'
-
-color_mode = 'RGBA'
-color_depth = '16'
-file_format = 'PNG'
 x_res = 256
 y_res = 256
 res_percentage = 100
+
+rgb_out_path = 'rgb_img'
+rgb_color_mode = 'RGBA'
+rgb_color_depth = '16'
+rgb_file_format = 'PNG'
+
+depth_out_path = 'depth_img'
+depth_color_mode = 'RGBA'
+depth_file_format = 'PNG'
+
+normal_out_path = 'normal_img'
+normal_color_mode = 'RGBA'
+normal_file_format = 'PNG'
+
+albedo_out_path = 'albedo_img'
+albedo_color_mode = 'RGBA'
+albedo_file_format = 'PNG'
 
 ## depth 
 depth_offset = [-0.1]
