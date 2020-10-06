@@ -64,29 +64,38 @@ blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
 # render configs
 render_engine = 'CYCLES' # 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES'
 film_transparent = True
+sample_type = 'sphere' # 'sphere', 'side'
+num_samples = 100
+scale = 2
+use_half = True # is use half, num_sample is divided by 2
+
 
 # output image configs
 x_res = 256
 y_res = 256
 res_percentage = 100
+out_path = 'output'
 
-rgb_out_path = 'rgb_img'
+## rgb
+rgb_out_path = 'rgb'
 rgb_color_mode = 'RGBA'
 rgb_color_depth = '16'
 rgb_file_format = 'PNG'
 
-depth_out_path = 'depth_img'
-depth_color_mode = 'RGBA'
-depth_file_format = 'PNG'
-
-normal_out_path = 'normal_img'
-normal_color_mode = 'RGBA'
-normal_file_format = 'PNG'
-
-albedo_out_path = 'albedo_img'
-albedo_color_mode = 'RGBA'
-albedo_file_format = 'PNG'
-
 ## depth 
 depth_offset = [-0.1]
 depth_scale = [0.5]
+depth_out_path = 'depth'
+depth_color_mode = 'RGBA'
+depth_file_format = 'PNG'
+
+## normal
+normal_out_path = 'normal'
+normal_color_mode = 'RGBA'
+normal_file_format = 'PNG'
+
+## albedo
+albedo_out_path = 'albedo'
+albedo_color_mode = 'RGBA'
+albedo_file_format = 'PNG'
+

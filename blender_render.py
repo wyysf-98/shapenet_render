@@ -4,11 +4,10 @@ import sys
 import os.path as osp
 abs_path = os.path.abspath(__file__)
 sys.path.append(os.path.dirname(abs_path))
-
-from glob import glob
-from config import *
 from mathutils import Vector
-
+from utils import *
+from config import *
+from glob import glob
 class BlenderRender():
     def __init__(self):
         self.__set_sence()
@@ -94,9 +93,6 @@ class BlenderRender():
         self.albedo_file_output.format.file_format = albedo_file_format
         self.albedo_file_output.format.color_mode = albedo_color_mode
 
-    def __set_lights(self):
-        pass
-
     def look_at(self, obj, point):
         loc_obj = obj.location
         direction = point - loc_obj
@@ -130,30 +126,33 @@ class BlenderRender():
     def render(self):
         for output_node in [self.depth_file_output, self.normal_file_output, self.albedo_file_output]:
             output_node.base_path = ''
-        cam_loc = [
-            (1.5, 0, 0),
-            (-1.5, 0, 0),
-            (0, 1, 0),
-            (0, -1, 0),
-            (0, 0, 1.5),
-            (0, 0, -1.5),
-        ]
+
+        if sample_type == 'sphera':
+            cam_loc = sample_sphere(num_samples, scale, use_half)
+        elif sample_type == 'side':
+            cam_loc = sample_side(scale)
+        else:
+            raise NotImplementedError('{} is not implemented !!!'.format(sample_type))
+
         for i, loc in enumerate(cam_loc):
             self.move_camera(loc)
 
             self.scene.render.filepath = osp.join(
-                rgb_out_path, '{}.png'.format(i))
+                out_path, rgb_out_path, '{}.png'.format(i))
             self.depth_file_output.file_slots[0].path = osp.join(
-                depth_out_path, '{}_'.format(i))
+                out_path, depth_out_path, '{}_'.format(i))
             self.normal_file_output.file_slots[0].path = osp.join(
-                normal_out_path, '{}_'.format(i))
+                out_path, normal_out_path, '{}_'.format(i))
             self.albedo_file_output.file_slots[0].path = osp.join(
-                albedo_out_path, '{}_'.format(i))
+                out_path, albedo_out_path, '{}_'.format(i))
 
-            bpy.ops.render.render(write_still=True)  # render still
+            bpy.ops.render.render(write_still=True)
 
 
 if __name__ == "__main__":
+    if not osp.exists(out_path):
+        os.makedirs(out_path)
+
     my_render = BlenderRender()
     for cate in render_cate:
         model_path = glob(
