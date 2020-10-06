@@ -4,10 +4,12 @@ import sys
 import os.path as osp
 abs_path = os.path.abspath(__file__)
 sys.path.append(os.path.dirname(abs_path))
-from mathutils import Vector
-from utils import *
-from config import *
+
 from glob import glob
+from config import *
+from utils import *
+from mathutils import Vector
+
 class BlenderRender():
     def __init__(self):
         self.__set_sence()
@@ -127,12 +129,13 @@ class BlenderRender():
         for output_node in [self.depth_file_output, self.normal_file_output, self.albedo_file_output]:
             output_node.base_path = ''
 
-        if sample_type == 'sphera':
+        if sample_type == 'sphere':
             cam_loc = sample_sphere(num_samples, scale, use_half)
         elif sample_type == 'side':
             cam_loc = sample_side(scale)
         else:
-            raise NotImplementedError('{} is not implemented !!!'.format(sample_type))
+            raise NotImplementedError(
+                '{} is not implemented !!!'.format(sample_type))
 
         for i, loc in enumerate(cam_loc):
             self.move_camera(loc)

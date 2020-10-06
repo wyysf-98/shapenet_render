@@ -1,1 +1,0 @@
-/Applications/Blender.app/Contents/MacOS/blender -b --python render_new.py -- -d /Users/liweiyu/MyCodes/shapenet-v2/02958343/10555502fa7b3027283ffcfc40c29975 -o output/ -s 256 -n 10 -fov 5

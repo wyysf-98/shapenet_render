@@ -83,8 +83,8 @@ rgb_color_depth = '16'
 rgb_file_format = 'PNG'
 
 ## depth 
-depth_offset = [-0.1]
-depth_scale = [0.5]
+depth_offset = [0.]
+depth_scale = [1.]
 depth_out_path = 'depth'
 depth_color_mode = 'RGBA'
 depth_file_format = 'PNG'
