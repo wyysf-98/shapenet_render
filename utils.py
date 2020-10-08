@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 
@@ -30,3 +31,30 @@ def sample_side(scale=2):
     ]
 
     return pos_list
+
+# Prefix output filename. eg(1_001.png to 1.png)
+def prefix_name(out_paths):
+    for out_path in out_paths:
+        outRenderFileNamePadded = out_path+"0001.png"
+        outRenderFileName = out_path+".png"
+        if os.path.exists(outRenderFileName):
+            os.remove(outRenderFileName)
+        os.rename(outRenderFileNamePadded, outRenderFileName)
+
+
+# def exr_to_png(exr_path):
+#     depth_path = exr_path.replace('.png0001.exr', '.png')
+#     exr_image = OpenEXR.InputFile(exr_path)
+#     dw = exr_image.header()['dataWindow']
+#     (width, height) = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+
+#     def read_exr(s, width, height):
+#         mat = np.fromstring(s, dtype=np.float32)
+#         mat = mat.reshape(height, width)
+#         return mat
+
+#     dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels('BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
+#     dmap = Image.fromarray((dmap != 1).astype(np.int32))
+#     dmap.save(depth_path)
+#     exr_image.close()
+#     os.system('rm {}'.format(exr_path))
