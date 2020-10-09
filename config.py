@@ -1,18 +1,18 @@
 # data configs
-shapenet_type = 'glb' # obj may cause artifacts
-# shapenet_path = '/Users/liweiyu/MyCodes/shapenet-v2_{}'.format(shapenet_type)
+shapenet_type = 'glb'  # obj may cause artifacts
+# shapenet_path = '/Users/liweiyu/MyCodes/Datasets/shapenet_tiny/shapenet-v2_{}'.format(shapenet_type)
 shapenet_path = '/Volumes/Weiyu/Datasets/ShapeNetCore.v2_{}'.format(shapenet_type)
 shapenet_cate = {
-                'table': '04379243',
-                'jar': '03593526',
-                'skateboard': '04225987',
-                'car': '02958343',
-                'bottle': '02876657',
-                'tower': '04460130',
-                'chair': '03001627',
-                'bookshelf': '02871439',
-                'camera': '02942699',
-                'airplane': '02691156',
+    'table': '04379243',
+    'jar': '03593526',
+    'skateboard': '04225987',
+    'car': '02958343',
+    'bottle': '02876657',
+    'tower': '04460130',
+    'chair': '03001627',
+    'bookshelf': '02871439',
+    'camera': '02942699',
+    'airplane': '02691156',
                 'laptop': '03642806',
                 'basket': '02801938',
                 'sofa': '04256520',
@@ -66,10 +66,13 @@ render_cate = ['camera']
 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
 include_path = '/opt/anaconda3/lib/python3.7/site-packages'
 # render configs
-render_engine = 'BLENDER_EEVEE'  # 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES' (warning: 'CYCLES' may cause artifacts)
+# 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES' (warning: 'CYCLES' may cause artifacts)
+render_engine = 'BLENDER_WORKBENCH'
 film_transparent = True
-sample_type = 'sphere'  # 'sphere', 'side'
-num_samples = 20
+use_backface_culling = True
+use_auto_smooth = True
+sample_type = 'side'  # 'sphere', 'side'
+num_samples = 40 if sample_type == 'shpere' else 12
 scale = 1.8
 use_half = True  # is use half, num_sample is divided by 2
 
@@ -77,10 +80,11 @@ use_half = True  # is use half, num_sample is divided by 2
 focal_len = 50
 
 # output image configs
-x_res = 128
-y_res = 128
+x_res = 512
+y_res = 512
 res_percentage = 100
-out_path = 'output_n{}'.format(num_samples//2 if use_half else num_samples)
+out_path = 'output_{}_{}_{}x{}'.format(
+    sample_type, num_samples//2 if use_half else num_samples, x_res, y_res)
 
 # rgb
 rgb_out_path = 'rgb'

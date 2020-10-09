@@ -44,6 +44,8 @@ class BlenderRender():
                 bpy.data.images.remove(block)
 
     def __set_sence(self):
+        bpy.ops.object.delete()
+
         # Render config
         self.scene = bpy.context.scene
         self.scene.render.engine = render_engine
@@ -67,8 +69,8 @@ class BlenderRender():
         links = self.tree.links
 
         # Clear default nodes
-        # for n in self.tree.nodes:
-        #     self.tree.nodes.remove(n)
+        for n in self.tree.nodes:
+            self.tree.nodes.remove(n)
 
         render_layers = self.tree.nodes.new('CompositorNodeRLayers')
 
@@ -139,11 +141,13 @@ class BlenderRender():
             ele = np.random.uniform(0, 40)
             dist = np.random.uniform(1, 2)
             x, y, z = obj_location(dist, azi, ele)
-            light_name = 'Lamp{}'.format(i)
+
+            light_name = 'Light{}'.format(i)
             light_data = bpy.data.lights.new(name=light_name, type='POINT')
-            light_data.energy = np.random.uniform(0.5, 2)
-            light = bpy.data.objects.new(
-                name=light_name, object_data=light_data)
+            light_data.energy = np.random.uniform(10, 30)
+            light = bpy.data.objects.new(name=light_name, object_data=light_data)
+            bpy.context.collection.objects.link(light)
+            bpy.context.view_layer.objects.active = light
             light.location = (x, y, z)
             self.look_at(light, Vector((0.0, 0, 0)))
 
@@ -159,8 +163,9 @@ class BlenderRender():
         
         for obj in self.scene.objects:
             if obj.type=='MESH':
-                obj.active_material.use_backface_culling=False
-                obj.data.use_auto_smooth=False
+                obj.active_material.use_backface_culling=use_backface_culling
+                obj.active_material.blend_method='OPAQUE'
+                obj.data.use_auto_smooth=use_auto_smooth
 
     def look_at(self, obj, point):
         obj.rotation_mode = 'XYZ'

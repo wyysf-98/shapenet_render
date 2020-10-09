@@ -40,10 +40,10 @@ def sample_side(scale=2):
     pos_list = [
         (1*scale, 0, 0),
         (-1*scale, 0, 0),
-        (0, 2*scale, 0),
-        (0, -2*scale, 0),
-        (0, 0, 2*scale),
-        (0, 0, -2*scale),
+        (0, 1*scale, 0),
+        (0, -1*scale, 0),
+        (0, 0, 1*scale),
+        (0, 0, -1*scale),
     ]
 
     return pos_list
