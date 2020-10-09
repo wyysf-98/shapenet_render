@@ -1,32 +1,49 @@
 import os
 import bpy
 import sys
+import numpy as np
 import os.path as osp
 abs_path = os.path.abspath(__file__)
 sys.path.append(os.path.dirname(abs_path))
-from mathutils import Vector, Matrix
-from utils import *
 from config import *
+sys.path.append(include_path)
+from utils import *
 from glob import glob
+from mathutils import Vector, Matrix
+
 
 class BlenderRender():
     def __init__(self):
         self.__set_sence()
         self.__set_nodes()
         self.__set_camera()
-        self.__get_calibration_matrix_K_from_blender()
+        self.__set_lights()
 
-        print(self.K)
-
-    def __del_all_mesh(self):
-        # Delete all mesh
-        bpy.ops.object.select_by_type(type="MESH")
-        bpy.ops.object.delete(use_global=False)
-
-    def __set_sence(self):
-        # Delete all objects, mainly for delete default cube
+    def __clean_cache(self):
+        for item in self.scene.objects:
+            if item.type == "MESH":
+                item.select_set(True)
+            else:
+                item.select_set(False)
         bpy.ops.object.delete()
 
+        for block in bpy.data.meshes:
+            if block.users == 0:
+                bpy.data.meshes.remove(block)
+
+        for block in bpy.data.materials:
+            if block.users == 0:
+                bpy.data.materials.remove(block)
+
+        for block in bpy.data.textures:
+            if block.users == 0:
+                bpy.data.textures.remove(block)
+
+        for block in bpy.data.images:
+            if block.users == 0:
+                bpy.data.images.remove(block)
+
+    def __set_sence(self):
         # Render config
         self.scene = bpy.context.scene
         self.scene.render.engine = render_engine
@@ -50,8 +67,8 @@ class BlenderRender():
         links = self.tree.links
 
         # Clear default nodes
-        for n in self.tree.nodes:
-            self.tree.nodes.remove(n)
+        # for n in self.tree.nodes:
+        #     self.tree.nodes.remove(n)
 
         render_layers = self.tree.nodes.new('CompositorNodeRLayers')
 
@@ -113,47 +130,37 @@ class BlenderRender():
         self.cam.data.lens = focal_len
 
         cam_constraint = self.cam.constraints.new(type='TRACK_TO')
-        cam_constraint.track_axis = 'TRACK_NEGATIVE_Z' # TOP DOWN
+        cam_constraint.track_axis = 'TRACK_NEGATIVE_Z'  # TOP DOWN
         cam_constraint.up_axis = 'UP_Y'
 
+    def __set_lights(self):
+        for i in range(2):
+            azi = np.random.uniform(0, 360)
+            ele = np.random.uniform(0, 40)
+            dist = np.random.uniform(1, 2)
+            x, y, z = obj_location(dist, azi, ele)
+            light_name = 'Lamp{}'.format(i)
+            light_data = bpy.data.lights.new(name=light_name, type='POINT')
+            light_data.energy = np.random.uniform(0.5, 2)
+            light = bpy.data.objects.new(
+                name=light_name, object_data=light_data)
+            light.location = (x, y, z)
+            self.look_at(light, Vector((0.0, 0, 0)))
+
     def __import_obj(self, obj_path):
-        self.__del_all_mesh()
-        bpy.ops.import_scene.obj(filepath=obj_path)
-
-    # we could also define the camera matrix
-    # https://blender.stackexchange.com/questions/38009/3x4-camera-matrix-from-blender-camera
-    def __get_calibration_matrix_K_from_blender(self):
-        self.cam = self.scene.objects['Camera']
-        f_in_mm = self.cam.data.lens
-        scene = bpy.context.scene
-        resolution_x_in_px = scene.render.resolution_x
-        resolution_y_in_px = scene.render.resolution_y
-        scale = scene.render.resolution_percentage / 100
-        sensor_width_in_mm = self.cam.data.sensor_width
-        sensor_height_in_mm = self.cam.data.sensor_height
-        pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
-
-        if self.cam.data.sensor_fit == 'VERTICAL':
-            # the sensor height is fixed (sensor fit is horizontal),
-            # the sensor width is effectively changed with the pixel aspect ratio
-            s_u = resolution_x_in_px * scale / sensor_width_in_mm / pixel_aspect_ratio
-            s_v = resolution_y_in_px * scale / sensor_height_in_mm
-        else:  # 'HORIZONTAL' and 'AUTO'
-            # the sensor width is fixed (sensor fit is horizontal),
-            # the sensor height is effectively changed with the pixel aspect ratio
-            s_u = resolution_x_in_px * scale / sensor_width_in_mm
-            s_v = resolution_y_in_px * scale * pixel_aspect_ratio / sensor_height_in_mm
-
-        # Parameters of intrinsic calibration matrix K
-        alpha_u = f_in_mm * s_u
-        alpha_v = f_in_mm * s_v
-        u_0 = resolution_x_in_px * scale / 2
-        v_0 = resolution_y_in_px * scale / 2
-        skew = 0  # only use rectangular pixels
-
-        self.K = Matrix(((alpha_u, skew, u_0),
-                    (0, alpha_v, v_0),
-                    (0, 0, 1)))
+        self.__clean_cache()
+        if obj_path.endswith('.obj'):
+            print('.obj format may cause artifacts !!!')
+            bpy.ops.import_scene.obj(filepath=obj_path)
+        elif obj_path.endswith('.glb'):
+            bpy.ops.import_scene.gltf(filepath=model_path)
+        else:
+            raise NotImplementedError('data format not support yet')
+        
+        for obj in self.scene.objects:
+            if obj.type=='MESH':
+                obj.active_material.use_backface_culling=False
+                obj.data.use_auto_smooth=False
 
     def look_at(self, obj, point):
         obj.rotation_mode = 'XYZ'
@@ -164,24 +171,12 @@ class BlenderRender():
 
         obj.rotation_euler = rot_quat.to_euler()
 
-    def get_pose(self, obj):
-        obj.rotation_mode = 'QUATERNION'
-        q = obj.rotation_quaternion
-        print(q)
-
-        m = np.array(
-        [[1-2*q[2]*q[2]-2*q[3]*q[3], 2*q[1]*q[2]-2*q[0]*q[3],   2*q[1]*q[3]+2*q[0]*q[2],   obj.location[0]], 
-        [2*q[1]*q[2]+2*q[0]*q[3],    1-2*q[1]*q[1]-2*q[3]*q[3], 2*q[2]*q[3]-2*q[0]*q[1],   obj.location[1]],
-        [2*q[1]*q[3]-2*q[0]*q[2],    2*q[2]*q[3]+2*q[0]*q[1],   1-2*q[1]*q[1]-2*q[2]*q[2], obj.location[2]],
-        [0,                          0,                         0,                         1]])
-        print(m)
-
     def move_camera(self, cam_loc):
         self.cam.location = cam_loc
         self.look_at(self.cam, Vector((0.0, 0, 0)))
-        self.get_pose(self.cam)
 
     def render(self, obj_path):
+        obj_cate = obj_path.split('/')[-4]
         obj_name = obj_path.split('/')[-3]
 
         self.__import_obj(obj_path)
@@ -193,26 +188,26 @@ class BlenderRender():
         else:
             raise NotImplementedError(
                 '{} is not implemented !!!'.format(sample_type))
-        
-        out_paths = []
+
+        out_render_paths = []
         for i, loc in enumerate(cam_loc):
             self.move_camera(loc)
             self.scene.render.filepath = osp.join(
-                out_path, rgb_out_path, obj_name, '{}.png'.format(i))
+                out_path, rgb_out_path, obj_cate, obj_name, '{}.png'.format(i))
             self.depth_file_output.file_slots[0].path = osp.join(
-                out_path, depth_out_path, obj_name, str(i))
-            self.depth_file_output.file_slots[0].use_node_format = False
+                out_path, depth_out_path, obj_cate, obj_name, str(i))
             self.normal_file_output.file_slots[0].path = osp.join(
-                out_path, normal_out_path, obj_name, str(i))
+                out_path, normal_out_path, obj_cate, obj_name, str(i))
             self.albedo_file_output.file_slots[0].path = osp.join(
-                out_path, albedo_out_path, obj_name, str(i))
-            out_paths.extend([
-                osp.join(out_path, depth_out_path, obj_name, str(i)),
-                osp.join(out_path, normal_out_path, obj_name, str(i)),
-                osp.join(out_path, albedo_out_path, obj_name, str(i)),
+                out_path, albedo_out_path, obj_cate, obj_name, str(i))
+            out_render_paths.extend([
+                osp.join(out_path, depth_out_path, obj_cate, obj_name, str(i)),
+                osp.join(out_path, normal_out_path, obj_cate, obj_name, str(i)),
+                osp.join(out_path, albedo_out_path, obj_cate, obj_name, str(i)),
             ])
             bpy.ops.render.render(write_still=True)
-        return out_paths
+        return out_render_paths
+
 
 if __name__ == "__main__":
     if not osp.exists(out_path):
@@ -220,9 +215,17 @@ if __name__ == "__main__":
 
     my_render = BlenderRender()
     for cate in render_cate:
-        models_path = glob(
-            osp.join(shapenet_path, shapenet_cate[cate], '*', 'models', 'model_normalized.obj'))
-        for model_path in models_path:
+        obj_models_path = glob(
+            osp.join(shapenet_path.replace('glb', 'obj'), shapenet_cate[cate], '*', 'models', 'model_normalized.obj'))
+
+        for obj_model_path in obj_models_path:
+            model_path = obj_model_path
+            if shapenet_type == 'glb':
+                glb_model_path = obj_model_path.replace('obj', 'glb')
+                if not osp.exists(glb_model_path):
+                    print(".glb model not exsits!!! convert .obj to .glb")
+                    convert_obj2glb(obj_model_path, glb_model_path)
+                model_path = glb_model_path
+
             out_paths = my_render.render(model_path)
             prefix_name(out_paths)
-            break

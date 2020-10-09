@@ -1,5 +1,7 @@
 # data configs
-shapenet_path = '/Users/liweiyu/MyCodes/shapenet-v2'
+shapenet_type = 'glb' # obj may cause artifacts
+# shapenet_path = '/Users/liweiyu/MyCodes/shapenet-v2_{}'.format(shapenet_type)
+shapenet_path = '/Volumes/Weiyu/Datasets/ShapeNetCore.v2_{}'.format(shapenet_type)
 shapenet_cate = {
                 'table': '04379243',
                 'jar': '03593526',
@@ -57,26 +59,28 @@ shapenet_cate = {
                 'flowerpot': '03991062',
                 'microwaves': '03761084'
 }
-render_cate = ['car']
+# render_cate = ['bottle', 'bowl', 'camera', 'can', 'laptop', 'mug']
+render_cate = ['camera']
+
 # blender configs
 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
-
+include_path = '/opt/anaconda3/lib/python3.7/site-packages'
 # render configs
-render_engine = 'CYCLES'  # 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES'
+render_engine = 'BLENDER_EEVEE'  # 'BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES' (warning: 'CYCLES' may cause artifacts)
 film_transparent = True
 sample_type = 'sphere'  # 'sphere', 'side'
 num_samples = 20
-scale = 1.5
+scale = 1.8
 use_half = True  # is use half, num_sample is divided by 2
 
 # camera configs
 focal_len = 50
 
 # output image configs
-x_res = 256
-y_res = 256
+x_res = 128
+y_res = 128
 res_percentage = 100
-out_path = 'output'
+out_path = 'output_n{}'.format(num_samples//2 if use_half else num_samples)
 
 # rgb
 rgb_out_path = 'rgb'
@@ -88,7 +92,7 @@ rgb_file_format = 'PNG'
 depth_min = 0
 depth_max = 1
 depth_out_path = 'depth'
-depth_file_format = 'PNG'
+depth_file_format = 'OPEN_EXR'
 
 # normal
 normal_use_alpha = False

@@ -1,5 +1,20 @@
 import os
+import math
 import numpy as np
+import OpenEXR
+import Imath
+from PIL import Image 
+from glob import glob
+from mathutils import Matrix
+from mathutils import Vector
+
+# Blender utils
+
+
+def convert_obj2glb(src_dir, dst_dir):
+    os.system("obj2gltf -i %s -o %s" % (src_dir, dst_dir))
+
+# Render utils
 
 
 def sample_sphere(num_samples, scale=1, use_half=False):
@@ -18,6 +33,7 @@ def sample_sphere(num_samples, scale=1, use_half=False):
 
     return np.array(pos_list)
 
+
 def sample_side(scale=2):
     """ sample x,y,z location from six sides
     """
@@ -32,29 +48,43 @@ def sample_side(scale=2):
 
     return pos_list
 
-# Prefix output filename. eg(1_001.png to 1.png)
+
+def obj_location(dist, azi, ele):
+    ele = math.radians(ele)
+    azi = math.radians(azi)
+    x = dist * math.cos(azi) * math.cos(ele)
+    y = dist * math.sin(azi) * math.cos(ele)
+    z = dist * math.sin(ele)
+    return x, y, z
+
+# Output utils
+## Prefix output filename. eg(1_001.png to 1.png)
 def prefix_name(out_paths):
-    for out_path in out_paths:
-        outRenderFileNamePadded = out_path+"0001.png"
-        outRenderFileName = out_path+".png"
+    for out_path in out_paths:  
+        end_str = '.png'
+        if os.path.exists(out_path+'0001'+'.exr'):
+            end_str = '.exr'
+        outRenderFileNamePadded = out_path+'0001'+end_str
+        outRenderFileName = out_path+end_str
         if os.path.exists(outRenderFileName):
             os.remove(outRenderFileName)
         os.rename(outRenderFileNamePadded, outRenderFileName)
+        if end_str == '.exr':
+            exr_to_png(outRenderFileName)
 
+def exr_to_png(exr_path):
+    depth_path = exr_path.replace('.exr', '.png')
+    exr_image = OpenEXR.InputFile(exr_path)
+    dw = exr_image.header()['dataWindow']
+    (width, height) = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
 
-# def exr_to_png(exr_path):
-#     depth_path = exr_path.replace('.png0001.exr', '.png')
-#     exr_image = OpenEXR.InputFile(exr_path)
-#     dw = exr_image.header()['dataWindow']
-#     (width, height) = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+    def read_exr(s, width, height):
+        mat = np.fromstring(s, dtype=np.float32)
+        mat = mat.reshape(height, width)
+        return mat
 
-#     def read_exr(s, width, height):
-#         mat = np.fromstring(s, dtype=np.float32)
-#         mat = mat.reshape(height, width)
-#         return mat
-
-#     dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels('BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
-#     dmap = Image.fromarray((dmap != 1).astype(np.int32))
-#     dmap.save(depth_path)
-#     exr_image.close()
-#     os.system('rm {}'.format(exr_path))
+    dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels('BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
+    dmap = Image.fromarray((dmap != 1).astype(np.int32))
+    dmap.save(depth_path)
+    exr_image.close()
+    # os.system('rm {}'.format(exr_path))
