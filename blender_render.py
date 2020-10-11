@@ -15,9 +15,9 @@ from mathutils import Vector, Matrix
 class BlenderRender():
     def __init__(self):
         self.__set_sence()
-        self.__set_nodes()
         self.__set_camera()
         self.__set_lights()
+        self.__set_nodes()
 
     def __clean_cache(self):
         for item in self.scene.objects:
@@ -84,6 +84,7 @@ class BlenderRender():
         else:
             # Remap as other types can not represent the full range of depth.
             remap = self.tree.nodes.new(type="CompositorNodeMapValue")
+            remap.offset[0] = -1.0
             remap.use_min = True
             remap.min[0] = depth_min
             remap.use_max = True
@@ -143,13 +144,13 @@ class BlenderRender():
             x, y, z = obj_location(dist, azi, ele)
 
             light_name = 'Light{}'.format(i)
-            light_data = bpy.data.lights.new(name=light_name, type='POINT')
-            light_data.energy = np.random.uniform(10, 30)
+            light_data = bpy.data.lights.new(name=light_name, type=light_type)
+            light_data.energy = np.random.uniform(1, 10)
             light = bpy.data.objects.new(name=light_name, object_data=light_data)
             bpy.context.collection.objects.link(light)
             bpy.context.view_layer.objects.active = light
             light.location = (x, y, z)
-            self.look_at(light, Vector((0.0, 0, 0)))
+            self.look_at(light, Vector((0, 0, 0)))
 
     def __import_obj(self, obj_path):
         self.__clean_cache()
@@ -178,7 +179,7 @@ class BlenderRender():
 
     def move_camera(self, cam_loc):
         self.cam.location = cam_loc
-        self.look_at(self.cam, Vector((0.0, 0, 0)))
+        self.look_at(self.cam, Vector((0, 0, 0)))
 
     def render(self, obj_path):
         obj_cate = obj_path.split('/')[-4]
@@ -233,4 +234,5 @@ if __name__ == "__main__":
                 model_path = glb_model_path
 
             out_paths = my_render.render(model_path)
-            prefix_name(out_paths)
+            prefix_name(out_paths, save_exr)
+            exit(0)

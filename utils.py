@@ -3,10 +3,11 @@ import math
 import numpy as np
 import OpenEXR
 import Imath
-from PIL import Image 
+from PIL import Image
 from glob import glob
 from mathutils import Matrix
 from mathutils import Vector
+import cv2
 
 # Blender utils
 
@@ -58,9 +59,11 @@ def obj_location(dist, azi, ele):
     return x, y, z
 
 # Output utils
-## Prefix output filename. eg(1_001.png to 1.png)
-def prefix_name(out_paths):
-    for out_path in out_paths:  
+# Prefix output filename. eg(1_001.png to 1.png)
+
+
+def prefix_name(out_paths, save_exr):
+    for out_path in out_paths:
         end_str = '.png'
         if os.path.exists(out_path+'0001'+'.exr'):
             end_str = '.exr'
@@ -70,11 +73,15 @@ def prefix_name(out_paths):
             os.remove(outRenderFileName)
         os.rename(outRenderFileNamePadded, outRenderFileName)
         if end_str == '.exr':
-            exr_to_png(outRenderFileName)
+            exr_to_png(outRenderFileName, save_exr)
 
-def exr_to_png(exr_path):
-    depth_path = exr_path.replace('.exr', '.png')
+
+def exr_to_png(exr_path, save_exr):
+    np_path = exr_path.replace('.exr', '.npy')
+    mask_path = exr_path.replace('.exr', '_mask.png')
+    depth_path = exr_path.replace('.exr', '_depth.png')
     exr_image = OpenEXR.InputFile(exr_path)
+
     dw = exr_image.header()['dataWindow']
     (width, height) = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
 
@@ -83,8 +90,13 @@ def exr_to_png(exr_path):
         mat = mat.reshape(height, width)
         return mat
 
-    dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels('BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
-    dmap = Image.fromarray((dmap != 1).astype(np.int32))
-    dmap.save(depth_path)
-    exr_image.close()
-    # os.system('rm {}'.format(exr_path))
+    dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels(
+        'BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
+    dmap = np.where(dmap == np.inf, 0, dmap)
+    dmap = dmap/np.max(dmap)
+
+    cv2.imwrite(depth_path, np.where(dmap == 0, 255, dmap*255))
+    cv2.imwrite(mask_path, np.where(dmap > 0, 255, 0))
+    np.save(np_path, dmap)
+    if not save_exr:
+        os.system('rm {}'.format(exr_path))
