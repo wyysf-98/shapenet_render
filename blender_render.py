@@ -235,4 +235,3 @@ if __name__ == "__main__":
 
             out_paths = my_render.render(model_path)
             prefix_name(out_paths, save_exr)
-            exit(0)

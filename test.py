@@ -1,6 +1,12 @@
-import cv2
-import numpy as np
+from glob import glob
+from utils import *
+from config import *
+import sys
+sys.path.append(include_path)
 
-image = cv2.imread('./output_side_6_512x512/depth/02876657/dc0926ce09d6ce78eb8e919b102c6c08/0.exr', cv2.IMREAD_UNCHANGED)
-print(np.min(image))
-cv2.imwrite('save_cv2.img', image)
+BASE_PATH = '/Volumes/Weiyu/Datasets/shapenet/shapenet_render'
+
+exr_imgs = glob(BASE_PATH + '/*/depth/*/*/*.exr')
+for exr_img in exr_imgs:
+    print(exr_img)
+    exr_to_png(exr_img, True)

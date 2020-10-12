@@ -77,7 +77,6 @@ def prefix_name(out_paths, save_exr):
 
 
 def exr_to_png(exr_path, save_exr):
-    np_path = exr_path.replace('.exr', '.npy')
     mask_path = exr_path.replace('.exr', '_mask.png')
     depth_path = exr_path.replace('.exr', '_depth.png')
     exr_image = OpenEXR.InputFile(exr_path)
@@ -92,11 +91,12 @@ def exr_to_png(exr_path, save_exr):
 
     dmap, _, _ = [read_exr(s, width, height) for s in exr_image.channels(
         'BGR', Imath.PixelType(Imath.PixelType.FLOAT))]
-    dmap = np.where(dmap == np.inf, 0, dmap)
+    dmap = np.where(dmap > 65500, 0, dmap)
     dmap = dmap/np.max(dmap)
 
-    cv2.imwrite(depth_path, np.where(dmap == 0, 255, dmap*255))
-    cv2.imwrite(mask_path, np.where(dmap > 0, 255, 0))
-    np.save(np_path, dmap)
+    cv2.imwrite(depth_path, dmap*200)
+    cv2.imwrite(mask_path, np.where(dmap > 0, 255, 0).astype('uint8'))
+
     if not save_exr:
         os.system('rm {}'.format(exr_path))
+        
