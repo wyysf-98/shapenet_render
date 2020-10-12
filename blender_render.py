@@ -140,12 +140,12 @@ class BlenderRender():
         for i in range(2):
             azi = np.random.uniform(0, 360)
             ele = np.random.uniform(0, 40)
-            dist = np.random.uniform(1, 2)
+            dist = np.random.uniform(5, 10)
             x, y, z = obj_location(dist, azi, ele)
 
             light_name = 'Light{}'.format(i)
             light_data = bpy.data.lights.new(name=light_name, type=light_type)
-            light_data.energy = np.random.uniform(1, 10)
+            light_data.energy = np.random.uniform(1, max_ligtht_energy)
             light = bpy.data.objects.new(name=light_name, object_data=light_data)
             bpy.context.collection.objects.link(light)
             bpy.context.view_layer.objects.active = light

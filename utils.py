@@ -1,4 +1,5 @@
 import os
+import cv2
 import math
 import numpy as np
 import OpenEXR
@@ -7,7 +8,6 @@ from PIL import Image
 from glob import glob
 from mathutils import Matrix
 from mathutils import Vector
-import cv2
 
 # Blender utils
 
